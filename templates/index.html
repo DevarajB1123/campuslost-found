@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Campus Lost & Found | Home Dashboard{% endblock %}
+
+{% block content %}
+<!-- ================= HERO SECTION ================= -->
+<div class="ag-hero">
+  <div class="ag-hero-glow"></div>
+  <div class="ag-hero-content">
+    <div class="ag-hero-badge">
+      <span class="ag-pulse-dot" style="background-color: var(--cyan);"></span>
+      Next-Gen Campus Belongings Network
+    </div>
+    <h1 class="ag-hero-title">
+      Lost Something on Campus?<br>
+      <span>Find & Recover it Safely.</span>
+    </h1>
+    <p class="ag-hero-subtitle">
+      Connect with fellow students and campus security. Powered by intelligent cross-matching, private ownership verification, and secure in-app handover coordination.
+    </p>
+
+    <!-- Quick Action Buttons -->
+    <div class="ag-hero-actions">
+      <a href="{{ url_for('report_item', type='LOST') }}" class="ag-btn ag-btn-danger ag-btn-lg">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        I Lost an Item
+      </a>
+      <a href="{{ url_for('report_item', type='FOUND') }}" class="ag-btn ag-btn-success ag-btn-lg">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        I Found an Item
+      </a>
+      <a href="{{ url_for('browse') }}" class="ag-btn ag-btn-glass ag-btn-lg">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        Browse All Items
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SMART MATCH ALERT (FOR LOGGED-IN USERS) ================= -->
+{% if current_user and user_match_count > 0 %}
+<div class="ag-match-banner">
+  <div style="display: flex; align-items: center; gap: 1rem;">
+    <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--grad-cyan); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px var(--cyan-glow);">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#04101e" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+    </div>
+    <div>
+      <h3 style="font-size: 1.15rem; color: #fff;">Smart AI Match Radar Detected {{ user_match_count }} Match{{ 'es' if user_match_count > 1 else '' }}!</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+        Items reported found on campus closely match the category, location, and description of your lost reports.
+      </p>
+    </div>
+  </div>
+  <a href="{{ url_for('smart_matches_view') }}" class="ag-btn ag-btn-primary">
+    View AI Matches &rarr;
+  </a>
+</div>
+{% endif %}
+
+<!-- ================= LIVE CAMPUS METRICS ================= -->
+<div class="ag-stats-grid">
+  <!-- Total Reported -->
+  <div class="ag-stat-box">
+    <div class="ag-stat-icon-wrap cyan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+    </div>
+    <div>
+      <div class="ag-stat-num">{{ total_items }}</div>
+      <div class="ag-stat-label">Total Campus Reports</div>
+    </div>
+  </div>
+
+  <!-- Open Lost -->
+  <div class="ag-stat-box">
+    <div class="ag-stat-icon-wrap crimson">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    </div>
+    <div>
+      <div class="ag-stat-num">{{ open_lost }}</div>
+      <div class="ag-stat-label">Active Lost Items</div>
+    </div>
+  </div>
+
+  <!-- Open Found -->
+  <div class="ag-stat-box">
+    <div class="ag-stat-icon-wrap emerald">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+    </div>
+    <div>
+      <div class="ag-stat-num">{{ open_found }}</div>
+      <div class="ag-stat-label">Found Belongings Waiting</div>
+    </div>
+  </div>
+
+  <!-- Successfully Returned -->
+  <div class="ag-stat-box">
+    <div class="ag-stat-icon-wrap purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <div>
+      <div class="ag-stat-num">{{ returned_items }} ({{ recovery_rate }}%)</div>
+      <div class="ag-stat-label">Returned to Owner</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RECENT CAMPUS REPORTS SECTION ================= -->
+<div style="margin-bottom: 3.5rem;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h2 style="font-size: 1.6rem; color: #fff;">Recently Reported Items</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">Fresh lost and found updates across university faculties and zones</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{{ url_for('browse', type='LOST') }}" class="ag-btn ag-btn-glass ag-btn-sm">View Lost Only</a>
+      <a href="{{ url_for('browse', type='FOUND') }}" class="ag-btn ag-btn-glass ag-btn-sm">View Found Only</a>
+      <a href="{{ url_for('browse') }}" class="ag-btn ag-btn-primary ag-btn-sm">Explore All &rarr;</a>
+    </div>
+  </div>
+
+  <div class="ag-item-grid">
+    {% for item in recent_items %}
+    <div class="ag-card ag-card-interactive ag-item-card">
+      <div class="ag-card-media">
+        <!-- Status Badge Overlay -->
+        <div class="ag-card-badge-overlay">
+          {% if item['status'] == 'RETURNED' %}
+            <span class="ag-badge ag-badge-returned"><span class="ag-pulse-dot returned"></span> Returned</span>
+          {% elif item['type'] == 'LOST' %}
+            <span class="ag-badge ag-badge-lost"><span class="ag-pulse-dot lost"></span> Lost Item</span>
+          {% else %}
+            <span class="ag-badge ag-badge-found"><span class="ag-pulse-dot found"></span> Found Item</span>
+          {% endif %}
+        </div>
+
+        <!-- Bookmark button -->
+        <button class="ag-card-save-btn" data-item-id="{{ item['id'] }}" title="Save item">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        </button>
+
+        <!-- Image or Illustration -->
+        {% if item['image_path'] %}
+          <img src="{{ url_for('static', filename='uploads/' + item['image_path']) }}" alt="{{ item['title'] }}">
+        {% else %}
+          <div style="color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <span style="font-size: 0.75rem;">No Photo Attached</span>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="ag-card-body">
+        <div style="font-size: 0.75rem; color: var(--cyan); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">
+          {{ item['category'] }}
+        </div>
+        <h3 class="ag-item-title">{{ item['title'] }}</h3>
+        <p class="ag-item-desc">{{ item['description'] }}</p>
+
+        <div class="ag-item-meta">
+          <div class="ag-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>{{ item['location'] }}</span>
+          </div>
+          <div class="ag-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>{{ item['item_date'] }}{% if item['item_time'] %} at {{ item['item_time'] }}{% endif %}</span>
+          </div>
+        </div>
+
+        <div class="ag-card-footer">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="ag-avatar-sm" style="width: 24px; height: 24px; font-size: 0.75rem;">{{ item['reporter_name'][0] }}</div>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">{{ item['reporter_name'] }}</span>
+          </div>
+          <a href="{{ url_for('item_detail', item_id=item['id']) }}" class="ag-btn ag-btn-glass ag-btn-sm">
+            View Details &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ================= CAMPUS RECOVERY HIGHLIGHTS & HOTSPOTS ================= -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.75rem; margin-bottom: 2rem;">
+  <!-- Hotspots Box -->
+  <div class="ag-card">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.2rem; color: #fff;">Frequent Campus Hotspots</h3>
+      <a href="{{ url_for('campus_map') }}" style="font-size: 0.85rem; color: var(--cyan);">View Map &rarr;</a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+      {% for loc in top_locations %}
+      <a href="{{ url_for('browse', location=loc['location']) }}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); transition: var(--transition-smooth); color: inherit;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan);"></div>
+          <span style="font-weight: 600; font-size: 0.9rem;">{{ loc['location'] }}</span>
+        </div>
+        <span class="ag-badge ag-badge-returned" style="font-size: 0.7rem;">{{ loc['count'] }} Items</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Safety & Return Verification Guidelines Box -->
+  <div class="ag-card" style="border-color: rgba(168, 85, 247, 0.3);">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+      <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); display: flex; align-items: center; justify-content: center; color: var(--purple);">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      </div>
+      <div>
+        <h3 style="font-size: 1.2rem; color: #fff;">Ownership Verification Standard</h3>
+        <div style="font-size: 0.8rem; color: var(--purple);">Safe Return Protocol</div>
+      </div>
+    </div>
+    <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.875rem; color: var(--text-muted);">
+      <li style="display: flex; align-items: flex-start; gap: 0.6rem;">
+        <span style="color: var(--emerald); font-weight: bold;">✓</span>
+        <span><strong>Secret Identifying Details:</strong> Keep unique marks, wallpaper locks, or card digits hidden from public listings.</span>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.6rem;">
+        <span style="color: var(--cyan); font-weight: bold;">✓</span>
+        <span><strong>Claimant Quiz:</strong> Claimants must answer ownership questions before physical handover is granted.</span>
+      </li>
+      <li style="display: flex; align-items: flex-start; gap: 0.6rem;">
+        <span style="color: var(--amber); font-weight: bold;">✓</span>
+        <span><strong>Admin Handover Point:</strong> Security Desk Room 102 acts as an official neutral point of return.</span>
+      </li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

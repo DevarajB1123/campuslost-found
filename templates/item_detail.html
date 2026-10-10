@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item['title'] }} | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+  <!-- Back navigation breadcrumb -->
+  <div style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+    <a href="{{ url_for('browse') }}" style="color: var(--text-muted); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+      &larr; Back to Directory
+    </a>
+    <div style="display: flex; gap: 0.75rem;">
+      <button class="ag-btn ag-btn-glass ag-btn-sm ag-card-save-btn {% if is_saved %}active{% endif %}" data-item-id="{{ item['id'] }}" style="position: static; width: auto; height: auto; border-radius: var(--radius-pill); padding: 0.4rem 1rem;">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        <span>{% if is_saved %}Saved in Bookmarks{% else %}Bookmark Item{% endif %}</span>
+      </button>
+      {% if session.get('role') == 'admin' %}
+      <form method="POST" action="{{ url_for('admin_moderate_item', item_id=item['id']) }}" onsubmit="return confirm('Archive this item?');" style="display: inline;">
+        <input type="hidden" name="action" value="ARCHIVE">
+        <button type="submit" class="ag-btn ag-btn-danger ag-btn-sm">Archive</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ================= SMART MATCH ALERT BANNER ================= -->
+  {% if smart_matches %}
+  <div class="ag-match-banner">
+    <div style="display: flex; align-items: center; gap: 1.25rem;">
+      <div class="ag-match-score-pill">
+        {{ smart_matches[0]['match_score'] }}% Match
+      </div>
+      <div>
+        <h3 style="font-size: 1.15rem; color: #fff;">Potential Match Detected!</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          A complementary <strong>{{ smart_matches[0]['item']['type'] }}</strong> report:
+          <em>"{{ smart_matches[0]['item']['title'] }}"</em> was reported in {{ smart_matches[0]['item']['location'] }}.
+        </p>
+      </div>
+    </div>
+    <a href="{{ url_for('item_detail', item_id=smart_matches[0]['item']['id']) }}" class="ag-btn ag-btn-primary">
+      Inspect Matching Report &rarr;
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- ================= MAIN DETAIL GRID ================= -->
+  <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 2rem; margin-bottom: 2.5rem;" class="ag-detail-grid">
+    <!-- Left Column: Image & Media -->
+    <div>
+      <div class="ag-card" style="padding: 1rem; position: sticky; top: 90px;">
+        <div style="width: 100%; height: 360px; border-radius: var(--radius-md); background: #0c1220; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+          {% if item['image_path'] %}
+            <img src="{{ url_for('static', filename='uploads/' + item['image_path']) }}" alt="{{ item['title'] }}" style="width: 100%; height: 100%; object-fit: contain;">
+          {% else %}
+            <div style="text-align: center; color: var(--text-dim);">
+              <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              <div style="margin-top: 8px; font-size: 0.85rem;">No Photo Uploaded</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Google Maps Location Widget -->
+        <div style="margin-top: 1.25rem; padding: 1rem; background: rgba(14, 20, 36, 0.8); border: 1px solid var(--border-glass-light); border-radius: var(--radius-md);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--cyan); font-size: 0.85rem;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              Google Maps Location
+            </div>
+            <a href="https://www.google.com/maps/search/?api=1&query={{ item['latitude'] or 12.9716 }},{{ item['longitude'] or 77.5946 }}" target="_blank" rel="noopener noreferrer" style="font-size: 0.75rem; color: var(--cyan); text-decoration: underline;">
+              Open in Google Maps &nearr;
+            </a>
+          </div>
+          <div style="font-size: 0.8rem; color: #fff; font-weight: 600; margin-bottom: 2px;">
+            {{ item['location'] }}
+          </div>
+          {% if item['latitude'] and item['latitude'] != 0.0 %}
+          <div style="font-size: 0.75rem; color: var(--text-dim); font-family: monospace;">
+            {{ "%.4f"|format(item['latitude']) }}° N, {{ "%.4f"|format(item['longitude']) }}° E
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Safe Handover Notice -->
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: var(--radius-md); font-size: 0.825rem;">
+          <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--cyan); margin-bottom: 4px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            Campus Security Handover Protocol
+          </div>
+          <p style="color: var(--text-muted);">
+            All physical exchanges should be scheduled via official campus security or in public areas like the Main Library Desk.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Specifications & Ownership Verification -->
+    <div>
+      <div class="ag-card" style="padding: 2rem;">
+        <!-- Status & Category Row -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            {% if item['status'] == 'RETURNED' %}
+              <span class="ag-badge ag-badge-returned"><span class="ag-pulse-dot returned"></span> Returned to Owner</span>
+            {% elif item['type'] == 'LOST' %}
+              <span class="ag-badge ag-badge-lost"><span class="ag-pulse-dot lost"></span> Lost Item</span>
+            {% else %}
+              <span class="ag-badge ag-badge-found"><span class="ag-pulse-dot found"></span> Found Item</span>
+            {% endif %}
+
+            {% if item['status'] == 'CLAIM_PENDING' %}
+              <span class="ag-badge ag-badge-pending">Claim Verification in Progress</span>
+            {% endif %}
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-dim);">Report #{{ item['id'] }}</span>
+        </div>
+
+        <!-- Title -->
+        <h1 style="font-size: 1.8rem; margin-bottom: 1rem; color: #fff;">{{ item['title'] }}</h1>
+
+        <!-- Key Information Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; padding: 1.25rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-glass); border-radius: var(--radius-md);">
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Category</div>
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--cyan); margin-top: 2px;">{{ item['category'] }}</div>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Location</div>
+            <div style="font-weight: 600; font-size: 0.95rem; color: #fff; margin-top: 2px;">{{ item['location'] }}</div>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Date Reported</div>
+            <div style="font-weight: 600; font-size: 0.95rem; color: #fff; margin-top: 2px;">{{ item['item_date'] }}</div>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Handover Preference</div>
+            <div style="font-weight: 600; font-size: 0.95rem; color: #fff; margin-top: 2px;">{{ item['contact_method'] }}</div>
+          </div>
+        </div>
+
+        <!-- Public Description -->
+        <div style="margin-bottom: 2rem;">
+          <h4 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase;">Public Description</h4>
+          <p style="color: #e2e8f0; line-height: 1.7; font-size: 0.95rem;">
+            {{ item['description'] }}
+          </p>
+        </div>
+
+        <!-- ================= OWNERSHIP VERIFICATION SHIELD ================= -->
+        <div class="ag-secret-box" style="margin-bottom: 2rem;">
+          <div class="ag-secret-header">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Private Ownership Verification Shield
+          </div>
+
+          {% if session.get('user_id') == item['user_id'] or session.get('role') == 'admin' %}
+            <!-- Visible to Reporter or Admin -->
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+              <strong style="color: var(--purple);">Reporter's Private Identifying Detail (Hidden from Public):</strong>
+            </p>
+            <div style="padding: 0.75rem 1rem; background: rgba(14, 18, 30, 0.8); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: var(--radius-sm); font-size: 0.9rem; color: #f1f5f9;">
+              {{ item['private_details'] or 'No private details specified.' }}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--emerald); margin-top: 6px;">
+              ✓ Compare this confidential detail against claimant answers to authorize return.
+            </div>
+          {% else %}
+            <!-- Protected/Hidden for others -->
+            <div style="position: relative; min-height: 90px; border-radius: var(--radius-sm); overflow: hidden;">
+              <div class="ag-blur-vault">
+                Private identifying proof is stored securely in the database. When claiming, describe the item's unique markings, serial code, interior contents, or lockscreen.
+              </div>
+              <div class="ag-vault-overlay">
+                <div style="font-weight: 700; color: #fff; font-size: 0.9rem; margin-bottom: 2px;">
+                  Confidential Verification Shield Active
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); max-width: 360px;">
+                  Unique markings and contents are kept confidential to prevent false claims. You will verify your ownership during claim submission.
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- ================= ACTIONS / CLAIM WORKFLOW ================= -->
+        <div style="padding-top: 1.5rem; border-top: 1px solid var(--border-glass);">
+          {% if session.get('user_id') == item['user_id'] %}
+            <!-- User is the reporter -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+              <span style="font-size: 0.85rem; color: var(--cyan);">
+                👑 You reported this item.
+              </span>
+              <a href="{{ url_for('claims') }}" class="ag-btn ag-btn-primary">
+                Manage Incoming Claims ({{ item_claims|length }})
+              </a>
+            </div>
+          {% elif user_claim %}
+            <!-- User already filed a claim -->
+            <div style="padding: 1rem; background: rgba(255, 183, 3, 0.1); border: 1px solid rgba(255, 183, 3, 0.3); border-radius: var(--radius-md);">
+              <div style="font-weight: 700; color: var(--amber); margin-bottom: 4px;">
+                You have an active claim on this item (Status: {{ user_claim['status'] }})
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                Your verification proof was recorded. You can coordinate directly with the finder via In-App Chat.
+              </p>
+              <div style="display: flex; gap: 0.75rem;">
+                <a href="{{ url_for('item_messages', item_id=item['id']) }}" class="ag-btn ag-btn-primary ag-btn-sm">
+                  Open Handover Chat
+                </a>
+                <a href="{{ url_for('claims') }}" class="ag-btn ag-btn-glass ag-btn-sm">
+                  View Claims Hub
+                </a>
+              </div>
+            </div>
+          {% elif item['status'] == 'RETURNED' %}
+            <div style="text-align: center; color: var(--cyan); font-weight: 600; padding: 1rem;">
+              🎉 This item has already been successfully verified and returned to its owner!
+            </div>
+          {% else %}
+            <!-- User can file a claim -->
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+              <button class="ag-btn ag-btn-primary ag-btn-lg" onclick="document.getElementById('claim-modal').style.display='flex';" style="flex-grow: 1;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                Claim This Item
+              </button>
+              <a href="{{ url_for('item_messages', item_id=item['id']) }}" class="ag-btn ag-btn-glass ag-btn-lg">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Message Reporter
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CLAIM SUBMISSION MODAL ================= -->
+<div id="claim-modal" style="display: none; position: fixed; inset: 0; background: rgba(4, 6, 12, 0.85); backdrop-filter: blur(12px); z-index: 2000; align-items: center; justify-content: center; padding: 1rem;">
+  <div class="ag-card" style="max-width: 620px; width: 100%; max-height: 90vh; overflow-y: auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.3rem; color: #fff;">Ownership Verification Claim</h3>
+      <button onclick="document.getElementById('claim-modal').style.display='none';" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+    </div>
+
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+      To prevent fraudulent claims, describe details only the genuine owner would know (e.g. wallpaper image, secret scratches, card numbers, brand marks, or pouch contents).
+    </p>
+
+    <form method="POST" action="{{ url_for('claim_item', item_id=item['id']) }}">
+      <div class="ag-form-group">
+        <label class="ag-form-label">Ownership Proof & Description *</label>
+        <textarea name="proof_description" class="ag-textarea" rows="4" required placeholder="Describe how and when you lost this item, and mention key identifying marks..."></textarea>
+      </div>
+
+      <div class="ag-form-group">
+        <label class="ag-form-label">Secret Identifying Answers (Crucial for Verification)</label>
+        <textarea name="identifying_answers" class="ag-textarea" rows="3" placeholder="Specify hidden marks, exact lock codes, stickers, initials, or card digits..."></textarea>
+        <div class="ag-form-hint">This will be compared against the confidential details provided by the finder.</div>
+      </div>
+
+      <div class="ag-form-group">
+        <label class="ag-form-label">Handover Availability / Preferred Spot</label>
+        <input type="text" name="contact_note" class="ag-input" placeholder="e.g., Free between 2 PM - 4 PM near Library Desk">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="button" onclick="document.getElementById('claim-modal').style.display='none';" class="ag-btn ag-btn-glass">Cancel</button>
+        <button type="submit" class="ag-btn ag-btn-primary">Submit Ownership Claim</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

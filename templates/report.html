@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Report Lost or Found Item | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="max-width: 820px; margin: 0 auto;">
+  <div style="margin-bottom: 2rem; text-align: center;">
+    <div class="ag-badge ag-badge-match" style="margin-bottom: 0.75rem;">
+      Verified Campus Submission
+    </div>
+    <h1 style="font-size: 2.2rem; color: #fff;">Report Campus Belonging</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 580px; margin: 0 auto;">
+      Submit detailed reports for lost or found items. Our AI Smart Matching algorithm will instantly search complementary reports to connect owners and finders.
+    </p>
+  </div>
+
+  <!-- Real-time Duplicate Detection Alert -->
+  <div id="duplicate-warning-box" class="ag-card" style="display: none; margin-bottom: 2rem; border-color: var(--amber); background: rgba(245, 158, 11, 0.08);">
+    <div style="display: flex; align-items: flex-start; gap: 1rem;">
+      <div style="color: var(--amber); font-size: 1.5rem; line-height: 1;">⚠️</div>
+      <div>
+        <h4 style="color: var(--amber); font-size: 1.05rem; margin-bottom: 0.25rem;">Possible Duplicate Reports Detected!</h4>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem;">
+          We found items already listed with similar descriptions and locations. Please review them before creating an accidental duplicate:
+        </p>
+        <ul id="duplicate-items-list" style="list-style: none; font-size: 0.85rem; color: #fff;"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="ag-card" style="padding: 2.5rem;">
+    <form method="POST" action="{{ url_for('report_item') }}" enctype="multipart/form-data">
+      <!-- Report Type Switcher -->
+      <div style="margin-bottom: 2rem;">
+        <label class="ag-form-label" style="font-size: 0.95rem; margin-bottom: 0.75rem;">Report Type *</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <label style="cursor: pointer;">
+            <input type="radio" name="type" id="report-type-lost" value="LOST" {% if default_type == 'LOST' %}checked{% endif %} style="display: none;" onchange="updateTypeStyling();">
+            <div id="type-box-lost" class="ag-card" style="padding: 1.25rem; text-align: center; border: 2px solid {% if default_type == 'LOST' %}var(--crimson){% else %}var(--border-glass){% endif %}; background: {% if default_type == 'LOST' %}rgba(255, 51, 102, 0.1){% else %}rgba(16, 22, 38, 0.6){% endif %};">
+              <div style="font-size: 1.25rem; font-weight: 700; color: #ff6b8b; margin-bottom: 2px;">🔴 I Lost an Item</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Looking for my missing belonging</div>
+            </div>
+          </label>
+          <label style="cursor: pointer;">
+            <input type="radio" name="type" id="report-type-found" value="FOUND" {% if default_type == 'FOUND' %}checked{% endif %} style="display: none;" onchange="updateTypeStyling();">
+            <div id="type-box-found" class="ag-card" style="padding: 1.25rem; text-align: center; border: 2px solid {% if default_type == 'FOUND' %}var(--emerald){% else %}var(--border-glass){% endif %}; background: {% if default_type == 'FOUND' %}rgba(0, 245, 160, 0.1){% else %}rgba(16, 22, 38, 0.6){% endif %};">
+              <div style="font-size: 1.25rem; font-weight: 700; color: var(--emerald); margin-bottom: 2px;">🟢 I Found an Item</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">Holding an item safe for its owner</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Item Title -->
+      <div class="ag-form-group">
+        <label class="ag-form-label" for="report-title">Item Title / Name *</label>
+        <input type="text" id="report-title" name="title" class="ag-input" required placeholder="e.g., Midnight Blue Hydro Flask, Casio fx-991EX, Black Leather Wallet">
+        <div class="ag-form-hint">Be concise and include brand or prominent color for better AI matching.</div>
+      </div>
+
+      <!-- Category & Location Grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" class="ag-grid-responsive">
+        <div class="ag-form-group">
+          <label class="ag-form-label" for="report-category">Category *</label>
+          <select id="report-category" name="category" class="ag-select" required>
+            <option value="" disabled selected>Select Item Category</option>
+            {% for cat in item_categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="ag-form-group">
+          <label class="ag-form-label" for="report-location">Campus Location *</label>
+          <select id="report-location" name="location" class="ag-select" required onchange="onLocationChange(this.value)">
+            <option value="" disabled selected>Select Campus Zone</option>
+            {% for loc in campus_locations %}
+              <option value="{{ loc }}">{{ loc }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Hidden Latitude & Longitude inputs populated by Google Maps -->
+      <input type="hidden" id="report-lat" name="latitude" value="{{ campus_center['lat'] }}">
+      <input type="hidden" id="report-lng" name="longitude" value="{{ campus_center['lng'] }}">
+
+      <!-- Interactive Google Maps Pin Selector -->
+      <div class="ag-form-group" style="margin-bottom: 2rem;">
+        <label class="ag-form-label" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Pinpoint Exact Spot on Google Maps</span>
+          <span id="coords-display" style="font-size: 0.75rem; color: var(--cyan); font-family: monospace;">12.9716° N, 77.5946° E</span>
+        </label>
+        <div id="report-map-picker" style="width: 100%; height: 220px; border-radius: var(--radius-md); background: #080d1a; border: 1px solid var(--border-glass-light); overflow: hidden; position: relative;">
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); font-size: 0.85rem;">
+            Loading Google Maps Picker...
+          </div>
+        </div>
+        <div class="ag-form-hint">Tip: Click anywhere or drag the pin on Google Maps to adjust the exact spot where the item was lost or found.</div>
+      </div>
+
+      <!-- Date & Approximate Time -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" class="ag-grid-responsive">
+        <div class="ag-form-group">
+          <label class="ag-form-label">Date Lost or Found *</label>
+          <input type="date" name="item_date" class="ag-input" required value="{{ current_year }}-10-09">
+        </div>
+        <div class="ag-form-group">
+          <label class="ag-form-label">Approximate Time</label>
+          <input type="time" name="item_time" class="ag-input" value="14:00">
+        </div>
+      </div>
+
+      <!-- Public Description -->
+      <div class="ag-form-group">
+        <label class="ag-form-label">Public Description *</label>
+        <textarea name="description" class="ag-textarea" rows="4" required placeholder="Describe appearance, general condition, and circumstances without exposing confidential identifying details..."></textarea>
+      </div>
+
+      <!-- Private Verification Feature (Confidential Shield) -->
+      <div class="ag-secret-box" style="margin-bottom: 1.75rem;">
+        <div class="ag-secret-header">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Private Identifying Detail (Ownership Verification Proof)
+        </div>
+        <p style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          <strong>Security Shield:</strong> This information will NEVER be displayed publicly. Only you and campus administrators can view it to verify genuine ownership before returns.
+        </p>
+        <textarea name="private_details" class="ag-textarea" rows="3" placeholder="e.g., Distinctive scratch on lower corner, unique sticker, wallpaper image, serial code, interior ID card or cash content..."></textarea>
+      </div>
+
+      <!-- Photo Upload -->
+      <div class="ag-form-group">
+        <label class="ag-form-label">Item Photograph (Recommended)</label>
+        <div style="display: flex; gap: 1.5rem; align-items: center;" class="ag-grid-responsive">
+          <div id="preview-container" style="width: 120px; height: 120px; border-radius: var(--radius-md); background: #0c1220; border: 1px dashed var(--border-glass-light); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+            <div id="image-placeholder" style="color: var(--text-dim); text-align: center; font-size: 0.75rem;">
+              Preview
+            </div>
+            <img id="image-preview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+          </div>
+          <div style="flex-grow: 1;">
+            <input type="file" id="image-upload-input" name="image" class="ag-input" accept="image/*" style="padding: 0.5rem;">
+            <div class="ag-form-hint">Accepted formats: JPG, PNG, WEBP. Maximum file size: 16 MB.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preferred Handover Method -->
+      <div class="ag-form-group">
+        <label class="ag-form-label">Preferred Safe Handover Method</label>
+        <select name="contact_method" class="ag-select">
+          <option value="In-App Handover Chat" selected>In-App Handover Chat (Private & Direct)</option>
+          <option value="Central Campus Security Desk">Central Campus Security Desk (Room 102)</option>
+          <option value="Department Administrative Office">Department Administrative Office</option>
+        </select>
+      </div>
+
+      <!-- Submit Button -->
+      <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+        <a href="{{ url_for('browse') }}" class="ag-btn ag-btn-glass">Cancel</a>
+        <button type="submit" class="ag-btn ag-btn-primary ag-btn-lg">
+          Publish Report & Run AI Matcher
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const CAMPUS_COORDS = {{ campus_location_coords|tojson }};
+let reportMap = null;
+let reportMarker = null;
+
+function updateTypeStyling() {
+  const lostRadio = document.getElementById('report-type-lost');
+  const lostBox = document.getElementById('type-box-lost');
+  const foundBox = document.getElementById('type-box-found');
+
+  if (lostRadio.checked) {
+    lostBox.style.borderColor = 'var(--crimson)';
+    lostBox.style.background = 'rgba(255, 51, 102, 0.1)';
+    foundBox.style.borderColor = 'var(--border-glass)';
+    foundBox.style.background = 'rgba(16, 22, 38, 0.6)';
+  } else {
+    foundBox.style.borderColor = 'var(--emerald)';
+    foundBox.style.background = 'rgba(0, 245, 160, 0.1)';
+    lostBox.style.borderColor = 'var(--border-glass)';
+    lostBox.style.background = 'rgba(16, 22, 38, 0.6)';
+  }
+}
+
+function updateCoordinates(lat, lng) {
+  document.getElementById('report-lat').value = lat.toFixed(6);
+  document.getElementById('report-lng').value = lng.toFixed(6);
+  document.getElementById('coords-display').innerText = `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`;
+}
+
+function onLocationChange(locName) {
+  if (CAMPUS_COORDS && CAMPUS_COORDS[locName]) {
+    const coords = CAMPUS_COORDS[locName];
+    updateCoordinates(coords.lat, coords.lng);
+    if (reportMap && reportMarker) {
+      const pos = { lat: coords.lat, lng: coords.lng };
+      reportMap.panTo(pos);
+      reportMap.setZoom(17);
+      reportMarker.setPosition(pos);
+    }
+  }
+}
+
+function initReportMapPicker() {
+  const el = document.getElementById('report-map-picker');
+  if (!el || typeof google === 'undefined') return;
+
+  const defaultPos = { lat: {{ campus_center['lat'] }}, lng: {{ campus_center['lng'] }} };
+
+  reportMap = new google.maps.Map(el, {
+    center: defaultPos,
+    zoom: 16.2,
+    styles: [
+      { "elementType": "geometry", "stylers": [{ "color": "#080d1a" }] },
+      { "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
+      { "elementType": "labels.text.stroke", "stylers": [{ "color": "#060912" }, { "weight": 2 }] },
+      { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+      { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#16233b" }] },
+      { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#1e3a8a" }] },
+      { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#050b18" }] }
+    ],
+    disableDefaultUI: true,
+    zoomControl: true
+  });
+
+  reportMarker = new google.maps.Marker({
+    position: defaultPos,
+    map: reportMap,
+    draggable: true,
+    title: "Item Location Pin"
+  });
+
+  reportMarker.addListener('dragend', (e) => {
+    updateCoordinates(e.latLng.lat(), e.latLng.lng());
+  });
+
+  reportMap.addListener('click', (e) => {
+    reportMarker.setPosition(e.latLng);
+    updateCoordinates(e.latLng.lat(), e.latLng.lng());
+  });
+}
+</script>
+
+<!-- Google Maps JS API for location picker -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initReportMapPicker&loading=async" async defer></script>
+{% endblock %}

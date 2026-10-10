@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Handover Chat | {{ item['title'] }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+  <!-- Header Bar -->
+  <div style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+    <a href="{{ url_for('item_detail', item_id=item['id']) }}" style="color: var(--text-muted); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+      &larr; Back to Item Details
+    </a>
+    <span class="ag-badge ag-badge-match">Secure Campus Coordination Channel</span>
+  </div>
+
+  <div class="ag-chat-container">
+    <!-- Chat Header -->
+    <div class="ag-chat-header">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <div class="ag-avatar-sm" style="width: 40px; height: 40px; font-size: 1rem;">
+          {{ chat_partner['name'][0] }}
+        </div>
+        <div>
+          <div style="font-weight: 700; color: #fff; font-size: 1rem;">
+            {{ chat_partner['name'] }}
+            {% if chat_partner['role'] == 'admin' %}
+              <span class="ag-badge ag-badge-pending" style="font-size: 0.65rem; margin-left: 6px;">Campus Admin</span>
+            {% endif %}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">
+            Regarding: <strong>{{ item['title'] }}</strong> ({{ item['location'] }})
+          </div>
+        </div>
+      </div>
+
+      <a href="{{ url_for('item_detail', item_id=item['id']) }}" class="ag-btn ag-btn-glass ag-btn-sm">
+        View Item
+      </a>
+    </div>
+
+    <!-- Messages Flow -->
+    <div class="ag-chat-messages" id="chat-messages-box">
+      <!-- Welcome System Banner -->
+      <div style="text-align: center; margin: 0.5rem 0 1rem;">
+        <span style="font-size: 0.75rem; color: var(--text-dim); background: rgba(255, 255, 255, 0.04); padding: 0.35rem 0.85rem; border-radius: var(--radius-pill); border: 1px solid var(--border-glass);">
+          🔒 Chat is encrypted and campus-verified. Do not share financial information.
+        </span>
+      </div>
+
+      {% for msg in messages %}
+        <div class="ag-message-bubble {% if msg['sender_id'] == session['user_id'] %}ag-msg-me{% else %}ag-msg-partner{% endif %}">
+          <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 2px; opacity: 0.85;">
+            {{ msg['sender_name'] }}
+          </div>
+          <div>{{ msg['message'] }}</div>
+          <div class="ag-msg-time">{{ msg['created_at'][11:16] }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Input Bar -->
+    <form method="POST" action="{{ url_for('item_messages', item_id=item['id'], with=chat_partner['id']) }}" class="ag-chat-input-bar">
+      <input type="text" name="message" class="ag-input" placeholder="Type your message to coordinate item verification and handover..." required autocomplete="off" autofocus>
+      <button type="submit" class="ag-btn ag-btn-primary" style="border-radius: var(--radius-md);">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+// Auto scroll to bottom
+window.addEventListener('DOMContentLoaded', () => {
+  const box = document.getElementById('chat-messages-box');
+  if (box) {
+    box.scrollTop = box.scrollHeight;
+  }
+});
+</script>
+{% endblock %}

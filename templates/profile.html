@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile & Activity | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+  <!-- Profile Header Card -->
+  <div class="ag-card ag-card-glow" style="padding: 2rem; margin-bottom: 2.5rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div class="ag-avatar-sm" style="width: 72px; height: 72px; font-size: 2rem; border-radius: 18px;">
+          {{ user['name'][0] }}
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="font-size: 1.8rem; color: #fff;">{{ user['name'] }}</h1>
+            <span class="ag-badge {% if user['role'] == 'admin' %}ag-badge-pending{% else %}ag-badge-returned{% endif %}">
+              {{ user['role'].upper() }}
+            </span>
+          </div>
+          <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">
+            Student ID / USN: <strong style="color: var(--cyan);">{{ user['usn'] }}</strong> • {{ user['department'] }}
+          </div>
+          <div style="color: var(--text-dim); font-size: 0.8rem; margin-top: 2px;">
+            {{ user['email'] }} {% if user['phone'] %}• {{ user['phone'] }}{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 1rem;">
+        <a href="{{ url_for('report_item') }}" class="ag-btn ag-btn-primary">+ File New Report</a>
+        <a href="{{ url_for('claims') }}" class="ag-btn ag-btn-glass">Claims Hub</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Sections Tabs -->
+  <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-glass); margin-bottom: 2rem;">
+    <button class="ag-chip active" id="tab-btn-reports" onclick="switchProfileTab('reports')">
+      My Reports ({{ my_items|length }})
+    </button>
+    <button class="ag-chip" id="tab-btn-saved" onclick="switchProfileTab('saved')">
+      Bookmarked Items ({{ saved_items|length }})
+    </button>
+  </div>
+
+  <!-- Tab 1: My Reports -->
+  <div id="tab-reports">
+    {% if my_items %}
+      <div class="ag-item-grid">
+        {% for item in my_items %}
+        <div class="ag-card ag-card-interactive ag-item-card">
+          <div class="ag-card-media">
+            <div class="ag-card-badge-overlay">
+              {% if item['status'] == 'RETURNED' %}
+                <span class="ag-badge ag-badge-returned"><span class="ag-pulse-dot returned"></span> Returned</span>
+              {% elif item['type'] == 'LOST' %}
+                <span class="ag-badge ag-badge-lost"><span class="ag-pulse-dot lost"></span> Lost</span>
+              {% else %}
+                <span class="ag-badge ag-badge-found"><span class="ag-pulse-dot found"></span> Found</span>
+              {% endif %}
+            </div>
+
+            {% if item['image_path'] %}
+              <img src="{{ url_for('static', filename='uploads/' + item['image_path']) }}" alt="{{ item['title'] }}">
+            {% else %}
+              <div style="color: var(--text-dim); font-size: 0.8rem;">No Photo</div>
+            {% endif %}
+          </div>
+
+          <div class="ag-card-body">
+            <div style="font-size: 0.75rem; color: var(--cyan); font-weight: 600; text-transform: uppercase;">
+              {{ item['category'] }}
+            </div>
+            <h3 class="ag-item-title">{{ item['title'] }}</h3>
+            <p class="ag-item-desc">{{ item['description'] }}</p>
+
+            <div class="ag-item-meta">
+              <div class="ag-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path></svg>
+                <span>{{ item['location'] }}</span>
+              </div>
+              <div class="ag-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect></svg>
+                <span>{{ item['item_date'] }}</span>
+              </div>
+            </div>
+
+            <div class="ag-card-footer">
+              <span style="font-size: 0.8rem; color: var(--text-dim);">Status: <strong>{{ item['status'] }}</strong></span>
+              <a href="{{ url_for('item_detail', item_id=item['id']) }}" class="ag-btn ag-btn-glass ag-btn-sm">
+                Manage &rarr;
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="ag-card" style="text-align: center; padding: 3rem 1.5rem;">
+        <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 0.5rem;">You haven't reported any items yet</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Lost an item on campus or found a fellow student's belonging?</p>
+        <a href="{{ url_for('report_item') }}" class="ag-btn ag-btn-primary">Report an Item</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Tab 2: Saved Items -->
+  <div id="tab-saved" style="display: none;">
+    {% if saved_items %}
+      <div class="ag-item-grid">
+        {% for item in saved_items %}
+        <div class="ag-card ag-card-interactive ag-item-card">
+          <div class="ag-card-media">
+            <div class="ag-card-badge-overlay">
+              <span class="ag-badge {% if item['type'] == 'LOST' %}ag-badge-lost{% else %}ag-badge-found{% endif %}">
+                {{ item['type'] }}
+              </span>
+            </div>
+            {% if item['image_path'] %}
+              <img src="{{ url_for('static', filename='uploads/' + item['image_path']) }}" alt="{{ item['title'] }}">
+            {% else %}
+              <div style="color: var(--text-dim); font-size: 0.8rem;">No Photo</div>
+            {% endif %}
+          </div>
+
+          <div class="ag-card-body">
+            <h3 class="ag-item-title">{{ item['title'] }}</h3>
+            <p class="ag-item-desc">{{ item['description'] }}</p>
+            <div class="ag-card-footer">
+              <span style="font-size: 0.8rem; color: var(--text-muted);">{{ item['location'] }}</span>
+              <a href="{{ url_for('item_detail', item_id=item['id']) }}" class="ag-btn ag-btn-glass ag-btn-sm">View Item</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="ag-card" style="text-align: center; padding: 3rem 1.5rem;">
+        <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 0.5rem;">No Bookmarks Saved</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Click the bookmark icon on any item card to save it for quick reference.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function switchProfileTab(tab) {
+  const repTab = document.getElementById('tab-reports');
+  const savTab = document.getElementById('tab-saved');
+  const repBtn = document.getElementById('tab-btn-reports');
+  const savBtn = document.getElementById('tab-btn-saved');
+
+  if (tab === 'reports') {
+    repTab.style.display = 'block';
+    savTab.style.display = 'none';
+    repBtn.classList.add('active');
+    savBtn.classList.remove('active');
+  } else {
+    repTab.style.display = 'none';
+    savTab.style.display = 'block';
+    savBtn.classList.add('active');
+    repBtn.classList.remove('active');
+  }
+}
+</script>
+{% endblock %}

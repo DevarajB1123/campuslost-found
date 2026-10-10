@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Control Center | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="max-width: 1350px; margin: 0 auto;">
+  <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div class="ag-badge ag-badge-pending" style="margin-bottom: 0.5rem;">
+        👑 Campus Security & Administration Command
+      </div>
+      <h1 style="font-size: 2.2rem; color: #fff;">Platform Moderation & Analytics</h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        Monitor campus lost & found activities, moderate reported listings, and manage student accounts.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{{ url_for('claims') }}" class="ag-btn ag-btn-primary ag-btn-sm">Claims Hub</a>
+      <a href="{{ url_for('report_item') }}" class="ag-btn ag-btn-glass ag-btn-sm">+ Desk Filing</a>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="ag-stats-grid" style="margin-bottom: 2.5rem;">
+    <div class="ag-stat-box">
+      <div class="ag-stat-icon-wrap cyan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+      </div>
+      <div>
+        <div class="ag-stat-num">{{ total_items }}</div>
+        <div class="ag-stat-label">Total Listings</div>
+      </div>
+    </div>
+
+    <div class="ag-stat-box">
+      <div class="ag-stat-icon-wrap emerald">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <div>
+        <div class="ag-stat-num">{{ returned_items }}</div>
+        <div class="ag-stat-label">Successfully Returned</div>
+      </div>
+    </div>
+
+    <div class="ag-stat-box">
+      <div class="ag-stat-icon-wrap crimson">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
+      <div>
+        <div class="ag-stat-num">{{ pending_claims }}</div>
+        <div class="ag-stat-label">Pending Claim Audits</div>
+      </div>
+    </div>
+
+    <div class="ag-stat-box">
+      <div class="ag-stat-icon-wrap purple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </div>
+      <div>
+        <div class="ag-stat-num">{{ total_users }}</div>
+        <div class="ag-stat-label">Verified Users</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Moderation Listings Table -->
+  <div class="ag-card" style="margin-bottom: 2.5rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.25rem; color: #fff;">Listing Moderation & Reports</h3>
+      <span style="font-size: 0.8rem; color: var(--text-muted);">Manage or remove spam/inappropriate items</span>
+    </div>
+
+    <div class="ag-table-wrapper">
+      <table class="ag-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Type</th>
+            <th>Item Title</th>
+            <th>Category & Zone</th>
+            <th>Reporter</th>
+            <th>Status</th>
+            <th>Moderation Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>#{{ item['id'] }}</td>
+            <td>
+              <span class="ag-badge {% if item['type'] == 'LOST' %}ag-badge-lost{% else %}ag-badge-found{% endif %}" style="font-size: 0.65rem;">
+                {{ item['type'] }}
+              </span>
+            </td>
+            <td>
+              <a href="{{ url_for('item_detail', item_id=item['id']) }}" style="font-weight: 600; color: #fff;">
+                {{ item['title'] }}
+              </a>
+            </td>
+            <td>
+              <div>{{ item['category'] }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">{{ item['location'] }}</div>
+            </td>
+            <td>
+              <div>{{ item['reporter_name'] }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">{{ item['reporter_usn'] }}</div>
+            </td>
+            <td>
+              <span class="ag-badge {% if item['status'] == 'RETURNED' %}ag-badge-returned{% elif item['status'] == 'OPEN' %}ag-badge-found{% else %}ag-badge-pending{% endif %}">
+                {{ item['status'] }}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 0.5rem;">
+                {% if item['status'] != 'ARCHIVED' %}
+                <form method="POST" action="{{ url_for('admin_moderate_item', item_id=item['id']) }}" style="display: inline;">
+                  <input type="hidden" name="action" value="ARCHIVE">
+                  <button type="submit" class="ag-btn ag-btn-glass ag-btn-sm" title="Archive report">Archive</button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('admin_moderate_item', item_id=item['id']) }}" style="display: inline;">
+                  <input type="hidden" name="action" value="RESTORE">
+                  <button type="submit" class="ag-btn ag-btn-primary ag-btn-sm" title="Restore report">Restore</button>
+                </form>
+                {% endif %}
+                <form method="POST" action="{{ url_for('admin_moderate_item', item_id=item['id']) }}" onsubmit="return confirm('Permanently delete this report?');" style="display: inline;">
+                  <input type="hidden" name="action" value="DELETE">
+                  <button type="submit" class="ag-btn ag-btn-danger ag-btn-sm" title="Delete">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Users & Student Directory -->
+  <div class="ag-card" style="margin-bottom: 2.5rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.25rem; color: #fff;">Campus User Directory</h3>
+      <span style="font-size: 0.8rem; color: var(--text-muted);">Verified Students & Staff Accounts</span>
+    </div>
+
+    <div class="ag-table-wrapper">
+      <table class="ag-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>USN / Student ID</th>
+            <th>Campus Email</th>
+            <th>Department</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u['id'] }}</td>
+            <td style="font-weight: 600; color: #fff;">{{ u['name'] }}</td>
+            <td><code style="color: var(--cyan); background: rgba(0, 242, 254, 0.1); padding: 2px 6px; border-radius: 4px;">{{ u['usn'] }}</code></td>
+            <td>{{ u['email'] }}</td>
+            <td>{{ u['department'] }}</td>
+            <td>
+              <span class="ag-badge {% if u['role'] == 'admin' %}ag-badge-pending{% else %}ag-badge-returned{% endif %}">
+                {{ u['role'].upper() }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recovery Feedback & Reviews -->
+  <div class="ag-card">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.25rem; color: #fff;">Recent Recovery Reviews & Student Feedback</h3>
+    </div>
+    {% if feedbacks %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+        {% for fb in feedbacks %}
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span style="font-weight: 600; color: #fff;">{{ fb['reviewer_name'] }}</span>
+            <span style="color: var(--amber);">{{ '⭐' * fb['rating'] }}</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+            "{{ fb['comment'] }}"
+          </p>
+          <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 6px;">
+            {{ fb['created_at'][:16] }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="text-align: center; color: var(--text-dim); padding: 2rem;">No feedback submitted yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

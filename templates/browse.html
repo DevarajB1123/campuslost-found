@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Campus Items | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 style="font-size: 2rem; color: #fff;">
+        {% if is_bookmarks_view %}
+          My Bookmarked Items
+        {% else %}
+          Campus Lost & Found Directory
+        {% endif %}
+      </h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        {% if is_bookmarks_view %}
+          Listing of items you saved for follow-up and monitoring
+        {% else %}
+          Browse, filter, and search through verified reports filed across the campus
+        {% endif %}
+      </p>
+    </div>
+    {% if not is_bookmarks_view %}
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{{ url_for('report_item', type='LOST') }}" class="ag-btn ag-btn-danger ag-btn-sm">+ Report Lost</a>
+      <a href="{{ url_for('report_item', type='FOUND') }}" class="ag-btn ag-btn-success ag-btn-sm">+ Report Found</a>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if not is_bookmarks_view %}
+  <!-- ================= SEARCH & FILTER HUD BAR ================= -->
+  <div class="ag-card" style="padding: 1.25rem; margin-bottom: 2rem;">
+    <form method="GET" action="{{ url_for('browse') }}">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+        <!-- Keyword Search -->
+        <div style="grid-column: span 2;">
+          <label class="ag-form-label" style="font-size: 0.8rem;">Search Keywords</label>
+          <input type="text" name="q" value="{{ q }}" class="ag-input" placeholder="Search by name, brand, location, or description...">
+        </div>
+
+        <!-- Type Filter -->
+        <div>
+          <label class="ag-form-label" style="font-size: 0.8rem;">Report Type</label>
+          <select name="type" class="ag-select">
+            <option value="ALL" {% if item_type == 'ALL' %}selected{% endif %}>All Reports</option>
+            <option value="LOST" {% if item_type == 'LOST' %}selected{% endif %}>Lost Items Only</option>
+            <option value="FOUND" {% if item_type == 'FOUND' %}selected{% endif %}>Found Items Only</option>
+          </select>
+        </div>
+
+        <!-- Category Filter -->
+        <div>
+          <label class="ag-form-label" style="font-size: 0.8rem;">Category</label>
+          <select name="category" class="ag-select">
+            <option value="ALL">All Categories</option>
+            {% for cat in item_categories %}
+              <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
+        <!-- Location Filter -->
+        <div>
+          <label class="ag-form-label" style="font-size: 0.8rem;">Campus Location</label>
+          <select name="location" class="ag-select">
+            <option value="ALL">All Campus Zones</option>
+            {% for loc in campus_locations %}
+              <option value="{{ loc }}" {% if location == loc %}selected{% endif %}>{{ loc }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div>
+          <label class="ag-form-label" style="font-size: 0.8rem;">Recovery Status</label>
+          <select name="status" class="ag-select">
+            <option value="ALL" {% if status == 'ALL' %}selected{% endif %}>All Statuses</option>
+            <option value="OPEN" {% if status == 'OPEN' %}selected{% endif %}>Open / Unresolved</option>
+            <option value="CLAIM_PENDING" {% if status == 'CLAIM_PENDING' %}selected{% endif %}>Claim Pending</option>
+            <option value="RETURNED" {% if status == 'RETURNED' %}selected{% endif %}>Returned to Owner</option>
+          </select>
+        </div>
+
+        <!-- Sort Option -->
+        <div>
+          <label class="ag-form-label" style="font-size: 0.8rem;">Sort Order</label>
+          <select name="sort" class="ag-select">
+            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest Reports</option>
+            <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+            <option value="views" {% if sort == 'views' %}selected{% endif %}>Most Viewed</option>
+          </select>
+        </div>
+
+        <!-- Submit & Reset -->
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="submit" class="ag-btn ag-btn-primary" style="flex-grow: 1;">
+            Apply Filters
+          </button>
+          <a href="{{ url_for('browse') }}" class="ag-btn ag-btn-glass" title="Reset Filters">
+            Reset
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- ================= ITEMS GRID ================= -->
+  {% if items %}
+  <div style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1.25rem;">
+    Showing <strong>{{ items|length }}</strong> item{{ 's' if items|length > 1 else '' }} matching your criteria
+  </div>
+  <div class="ag-item-grid">
+    {% for item in items %}
+    <div class="ag-card ag-card-interactive ag-item-card">
+      <div class="ag-card-media">
+        <!-- Status Badge -->
+        <div class="ag-card-badge-overlay">
+          {% if item['status'] == 'RETURNED' %}
+            <span class="ag-badge ag-badge-returned"><span class="ag-pulse-dot returned"></span> Returned</span>
+          {% elif item['type'] == 'LOST' %}
+            <span class="ag-badge ag-badge-lost"><span class="ag-pulse-dot lost"></span> Lost Item</span>
+          {% else %}
+            <span class="ag-badge ag-badge-found"><span class="ag-pulse-dot found"></span> Found Item</span>
+          {% endif %}
+        </div>
+
+        <!-- Bookmark button -->
+        <button class="ag-card-save-btn {% if item['is_saved'] %}active{% endif %}" data-item-id="{{ item['id'] }}" title="Save item">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        </button>
+
+        {% if item['image_path'] %}
+          <img src="{{ url_for('static', filename='uploads/' + item['image_path']) }}" alt="{{ item['title'] }}">
+        {% else %}
+          <div style="color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <span style="font-size: 0.75rem;">No Photo Attached</span>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="ag-card-body">
+        <div style="font-size: 0.75rem; color: var(--cyan); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">
+          {{ item['category'] }}
+        </div>
+        <h3 class="ag-item-title">{{ item['title'] }}</h3>
+        <p class="ag-item-desc">{{ item['description'] }}</p>
+
+        <div class="ag-item-meta">
+          <div class="ag-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>{{ item['location'] }}</span>
+          </div>
+          <div class="ag-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>{{ item['item_date'] }}{% if item['item_time'] %} at {{ item['item_time'] }}{% endif %}</span>
+          </div>
+        </div>
+
+        <div class="ag-card-footer">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="ag-avatar-sm" style="width: 24px; height: 24px; font-size: 0.75rem;">{{ item['reporter_name'][0] }}</div>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">{{ item['reporter_name'] }}</span>
+          </div>
+          <a href="{{ url_for('item_detail', item_id=item['id']) }}" class="ag-btn ag-btn-glass ag-btn-sm">
+            Details &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ag-card" style="text-align: center; padding: 4rem 2rem;">
+    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; color: var(--text-dim);">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    </div>
+    <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem;">No Items Matched Your Search</h3>
+    <p style="color: var(--text-muted); max-width: 440px; margin: 0 auto 1.5rem; font-size: 0.9rem;">
+      Try removing some filters, checking for spelling variations, or report the item if it hasn't been listed yet.
+    </p>
+    <a href="{{ url_for('browse') }}" class="ag-btn ag-btn-primary">Clear Filters</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

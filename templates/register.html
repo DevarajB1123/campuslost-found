@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Register Campus Account | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="max-width: 580px; margin: 2rem auto;">
+  <div class="ag-card ag-card-glow" style="padding: 2.5rem;">
+    <!-- Brand Icon -->
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <div class="ag-logo-orb" style="margin: 0 auto 1rem; width: 48px; height: 48px;">
+        <svg viewBox="0 0 24 24" width="26" height="26">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3a9 9 0 0 1 9 9M12 7a5 5 0 0 1 5 5"/>
+        </svg>
+      </div>
+      <h2 style="font-size: 1.8rem; color: #fff;">Register Campus Account</h2>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 4px;">
+        Restricted to verified university students, staff, and campus security
+      </p>
+    </div>
+
+    <!-- Register Form -->
+    <form method="POST" action="{{ url_for('register') }}">
+      <!-- Role Selection -->
+      <div class="ag-form-group">
+        <label class="ag-form-label">Account Role *</label>
+        <select name="role" id="role-select" class="ag-select" onchange="toggleAdminPasscode();">
+          <option value="student" selected>🎓 Campus Student / Research Scholar</option>
+          <option value="admin">👑 Campus Security & Administration Staff</option>
+        </select>
+      </div>
+
+      <!-- Admin Passcode Field (Hidden by default) -->
+      <div id="admin-passcode-group" class="ag-form-group" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px dashed var(--amber); padding: 1rem; border-radius: var(--radius-md);">
+        <label class="ag-form-label" style="color: var(--amber);">Campus Admin Security Passcode *</label>
+        <input type="password" name="admin_code" class="ag-input" placeholder="Enter administrative passcode (Hint: CAMPUS-ADMIN-2026)">
+      </div>
+
+      <!-- Full Name -->
+      <div class="ag-form-group">
+        <label class="ag-form-label">Full Name *</label>
+        <input type="text" name="name" class="ag-input" required placeholder="e.g. Maya Lin">
+      </div>
+
+      <!-- Email & Student ID / USN -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;" class="ag-grid-responsive">
+        <div class="ag-form-group">
+          <label class="ag-form-label">Campus Email *</label>
+          <input type="email" name="email" class="ag-input" required placeholder="maya.lin@campus.edu">
+        </div>
+        <div class="ag-form-group">
+          <label class="ag-form-label">Student ID / USN *</label>
+          <input type="text" name="usn" class="ag-input" required placeholder="e.g. 1MS22CS099">
+        </div>
+      </div>
+
+      <!-- Department & Contact -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;" class="ag-grid-responsive">
+        <div class="ag-form-group">
+          <label class="ag-form-label">Department / Faculty</label>
+          <input type="text" name="department" class="ag-input" placeholder="e.g. Computer Science & Eng">
+        </div>
+        <div class="ag-form-group">
+          <label class="ag-form-label">Phone Number (Private)</label>
+          <input type="text" name="phone" class="ag-input" placeholder="+1 (555) 000-0000">
+        </div>
+      </div>
+
+      <!-- Password & Confirm Password -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;" class="ag-grid-responsive">
+        <div class="ag-form-group">
+          <label class="ag-form-label">Password *</label>
+          <input type="password" name="password" class="ag-input" required placeholder="At least 6 characters">
+        </div>
+        <div class="ag-form-group">
+          <label class="ag-form-label">Confirm Password *</label>
+          <input type="password" name="confirm_password" class="ag-input" required placeholder="Confirm password">
+        </div>
+      </div>
+
+      <button type="submit" class="ag-btn ag-btn-purple" style="width: 100%; padding: 0.8rem; margin-top: 1rem; font-size: 1rem;">
+        Complete Registration &rarr;
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.75rem; font-size: 0.85rem; color: var(--text-muted);">
+      Already have an account?
+      <a href="{{ url_for('login') }}" style="font-weight: 600; color: var(--cyan);">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleAdminPasscode() {
+  const role = document.getElementById('role-select').value;
+  const passcodeGroup = document.getElementById('admin-passcode-group');
+  if (role === 'admin') {
+    passcodeGroup.style.display = 'block';
+  } else {
+    passcodeGroup.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

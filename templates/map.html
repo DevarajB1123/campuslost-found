@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Interactive Campus Google Map | Campus Lost & Found{% endblock %}
+
+{% block extra_head %}
+<!-- Google Maps Configuration Parameters -->
+<script>
+  window.CAMPUS_MAP_CENTER = {
+    lat: {{ campus_center['lat'] }},
+    lng: {{ campus_center['lng'] }}
+  };
+</script>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1350px; margin: 0 auto;">
+  <!-- Header Bar -->
+  <div style="margin-bottom: 1.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div class="ag-badge ag-badge-match" style="margin-bottom: 0.5rem;">
+        🌐 Google Maps JavaScript API Integrated
+      </div>
+      <h1 style="font-size: 2.2rem; color: #fff;">Campus Geospatial Map & Hotspots</h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">
+        Explore campus buildings, pinpoint exact recovery locations, and view live lost & found markers on Google Maps.
+      </p>
+    </div>
+
+    <!-- Controls & Key Setup -->
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+      <!-- Toggle Modes -->
+      <div style="background: rgba(14, 20, 36, 0.8); border: 1px solid var(--border-glass-light); border-radius: var(--radius-pill); padding: 3px; display: flex; gap: 4px;">
+        <button id="btn-mode-gmap" class="ag-chip active" onclick="switchMapMode('gmap')" style="margin: 0; padding: 0.35rem 0.9rem; font-size: 0.8rem;">
+          🗺️ Google Maps
+        </button>
+        <button id="btn-mode-blueprint" class="ag-chip" onclick="switchMapMode('blueprint')" style="margin: 0; padding: 0.35rem 0.9rem; font-size: 0.8rem;">
+          📐 Blueprint Vector
+        </button>
+      </div>
+
+      <!-- Set Custom Google Maps API Key -->
+      <button class="ag-btn ag-btn-glass ag-btn-sm" onclick="showApiKeyPrompt();" title="Configure or update Google Maps API Key">
+        🔑 Maps API Key
+      </button>
+    </div>
+  </div>
+
+  <!-- API Key Notification banner if none configured -->
+  <div id="map-api-key-alert" class="ag-card" style="display: {% if not google_maps_api_key %}block{% else %}none{% endif %}; margin-bottom: 1.5rem; border-color: var(--cyan); background: rgba(0, 242, 254, 0.05); padding: 1rem 1.25rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 1.25rem;">💡</span>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+          <strong style="color: #fff;">Google Maps API:</strong> Loaded in Antigravity Dark Mode.
+          {% if not google_maps_api_key %}
+            To supply your personal Google Maps Key for zero watermarks, click the button to the right.
+          {% else %}
+            Active key: <code>{{ google_maps_api_key[:6] }}...{{ google_maps_api_key[-4:] }}</code>
+          {% endif %}
+        </div>
+      </div>
+      <button class="ag-btn ag-btn-primary ag-btn-sm" onclick="showApiKeyPrompt();">
+        {% if google_maps_api_key %}Change Key{% else %}Enter Custom API Key{% endif %}
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Location Jump Chips -->
+  <div class="ag-filter-chips" style="margin-bottom: 1.25rem;">
+    <span style="font-size: 0.8rem; color: var(--text-dim); margin-right: 4px; display: flex; align-items: center;">Jump to:</span>
+    {% for loc_name, coords in campus_location_coords.items() %}
+      <button class="ag-chip" onclick="panToLocation('{{ loc_name }}')" title="{{ coords['desc'] }}">
+        📍 {{ loc_name }}
+      </button>
+    {% endfor %}
+  </div>
+
+  <!-- ================= MAP & LISTING GRID ================= -->
+  <div style="display: grid; grid-template-columns: 1.7fr 1fr; gap: 2rem;" class="ag-grid-responsive">
+    <!-- Left Column: Map Containers -->
+    <div class="ag-map-wrapper" style="padding: 1rem;">
+      <!-- Google Map Viewport -->
+      <div id="google-campus-map-wrapper">
+        <div id="google-campus-map" style="width: 100%; height: 550px; border-radius: var(--radius-lg); background: #080d1a; overflow: hidden; border: 1px solid var(--border-glass-light);">
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 0.9rem;">
+            <div style="text-align: center;">
+              <div class="ag-pulse-dot" style="background: var(--cyan); margin-bottom: 8px;"></div>
+              <div>Initializing Google Maps Engine...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fallback Blueprint Vector Map (Hidden by default, toggleable) -->
+      <div id="blueprint-map-wrapper" style="display: none;">
+        <div class="ag-map-svg-container" style="max-height: 550px;">
+          <svg viewBox="0 0 900 600" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              </pattern>
+            </defs>
+            <rect width="900" height="600" fill="#080d1a"/>
+            <rect width="900" height="600" fill="url(#grid)"/>
+
+            <path d="M 50 300 L 850 300" stroke="#1e293b" stroke-width="24" stroke-linecap="round"/>
+            <path d="M 450 60 L 450 540" stroke="#1e293b" stroke-width="24" stroke-linecap="round"/>
+            <circle cx="450" cy="300" r="48" fill="#0b1329" stroke="#334155" stroke-width="4"/>
+
+            <g class="ag-map-building" onclick="selectZone('Central Library')">
+              <rect x="360" y="80" width="180" height="110" rx="12" fill="#111c38" stroke="#00f2fe" stroke-width="2"/>
+              <text x="450" y="125" fill="#38bdf8" font-size="14" font-weight="bold" text-anchor="middle">Central Library</text>
+              <text x="450" y="150" fill="#94a3b8" font-size="11" text-anchor="middle">{{ zone_stats.get('Central Library', {}).get('total_count', 0) }} Items</text>
+            </g>
+
+            <g class="ag-map-building" onclick="selectZone('Main Canteen / Food Court')">
+              <rect x="90" y="80" width="200" height="110" rx="12" fill="#111c38" stroke="#00f5a0" stroke-width="2"/>
+              <text x="190" y="125" fill="#00f5a0" font-size="14" font-weight="bold" text-anchor="middle">Main Canteen</text>
+              <text x="190" y="150" fill="#94a3b8" font-size="11" text-anchor="middle">{{ zone_stats.get('Main Canteen / Food Court', {}).get('total_count', 0) }} Items</text>
+            </g>
+
+            <g class="ag-map-building" onclick="selectZone('Computer Science & Tech Block')">
+              <rect x="610" y="80" width="210" height="110" rx="12" fill="#111c38" stroke="#a855f7" stroke-width="2"/>
+              <text x="715" y="125" fill="#c084fc" font-size="13" font-weight="bold" text-anchor="middle">Computer Science Block</text>
+              <text x="715" y="150" fill="#94a3b8" font-size="11" text-anchor="middle">{{ zone_stats.get('Computer Science & Tech Block', {}).get('total_count', 0) }} Items</text>
+            </g>
+
+            <g class="ag-map-building" onclick="selectZone('Science & Engineering Labs')">
+              <rect x="350" y="380" width="200" height="110" rx="12" fill="#111c38" stroke="#38bdf8" stroke-width="2"/>
+              <text x="450" y="425" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle">Science & Engg Labs</text>
+              <text x="450" y="450" fill="#94a3b8" font-size="11" text-anchor="middle">{{ zone_stats.get('Science & Engineering Labs', {}).get('total_count', 0) }} Items</text>
+            </g>
+
+            <g class="ag-map-building" onclick="selectZone('Main Auditorium & Hall')">
+              <rect x="90" y="380" width="190" height="110" rx="12" fill="#111c38" stroke="#fbbf24" stroke-width="2"/>
+              <text x="185" y="425" fill="#fbbf24" font-size="13" font-weight="bold" text-anchor="middle">Main Auditorium</text>
+              <text x="185" y="450" fill="#94a3b8" font-size="11" text-anchor="middle">{{ zone_stats.get('Main Auditorium & Hall', {}).get('total_count', 0) }} Items</text>
+            </g>
+
+            <g class="ag-map-building" onclick="selectZone('Bus Bay & Parking Area')">
+              <rect x="620" y="380" width="190" height="110" rx="12" fill="#111c38" stroke="#ff3366" stroke-width="2"/>
+              <text x="715" y="425" fill="#ff6b8b" font-size="13" font-weight="bold" text-anchor="middle">Bus Bay & Parking</text>
+              <text x="715" y="450" fill="#94a3b8" font-size="11" text-anchor="middle">{{ zone_stats.get('Bus Bay & Parking Area', {}).get('total_count', 0) }} Items</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Map Legend Bar -->
+      <div style="display: flex; gap: 1.5rem; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 0.5rem 0.5rem 0; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap;">
+        <div style="display: flex; gap: 1.25rem;">
+          <span style="display: flex; align-items: center; gap: 6px;"><span class="ag-pulse-dot" style="background: var(--crimson);"></span> Lost Items</span>
+          <span style="display: flex; align-items: center; gap: 6px;"><span class="ag-pulse-dot" style="background: var(--emerald);"></span> Found Items</span>
+          <span style="display: flex; align-items: center; gap: 6px;"><span class="ag-pulse-dot" style="background: var(--purple);"></span> Buildings</span>
+        </div>
+        <span style="font-size: 0.75rem; color: var(--text-dim);">Coordinates: 12.9716° N, 77.5946° E</span>
+      </div>
+    </div>
+
+    <!-- Right Column: Location Summary & Items in Selected Zone -->
+    <div>
+      <div class="ag-card" style="height: 100%; display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+          <div>
+            <h3 style="font-size: 1.25rem; color: #fff;">
+              {% if selected_zone != 'ALL' %}{{ selected_zone }}{% else %}All Campus Locations{% endif %}
+            </h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+              {{ zone_items|length }} Item{{ 's' if zone_items|length > 1 else '' }} in current filter
+            </span>
+          </div>
+
+          {% if selected_zone != 'ALL' %}
+          <a href="{{ url_for('report_item', location=selected_zone) }}" class="ag-btn ag-btn-primary ag-btn-sm">
+            + Report Here
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Zone Items List -->
+        <div style="flex-grow: 1; overflow-y: auto; max-height: 520px; display: flex; flex-direction: column; gap: 0.85rem;">
+          {% for item in zone_items %}
+          <div class="ag-card" style="padding: 1rem; display: flex; gap: 1rem; align-items: center; background: rgba(14, 20, 36, 0.7);">
+            <div style="width: 54px; height: 54px; border-radius: var(--radius-sm); background: #0c1220; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+              {% if item['image_path'] %}
+                <img src="{{ url_for('static', filename='uploads/' + item['image_path']) }}" style="width: 100%; height: 100%; object-fit: cover;">
+              {% else %}
+                <span style="font-size: 0.7rem; color: var(--text-dim);">Item</span>
+              {% endif %}
+            </div>
+            <div style="flex-grow: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 2px;">
+                <span class="ag-badge {% if item['type'] == 'LOST' %}ag-badge-lost{% else %}ag-badge-found{% endif %}" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">
+                  {{ item['type'] }}
+                </span>
+                <span style="font-size: 0.75rem; color: var(--cyan);">{{ item['category'] }}</span>
+              </div>
+              <div style="font-weight: 600; font-size: 0.9rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ item['title'] }}
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
+                📍 {{ item['location'] }} • {{ item['item_date'] }}
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <a href="{{ url_for('item_detail', item_id=item['id']) }}" class="ag-btn ag-btn-glass ag-btn-sm" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;">
+                View
+              </a>
+              {% if item['latitude'] and item['latitude'] != 0.0 %}
+              <button class="ag-btn ag-btn-primary ag-btn-sm" onclick="if(googleMap){ googleMap.panTo({lat: {{ item['latitude'] }}, lng: {{ item['longitude'] }}}); googleMap.setZoom(18); }" style="padding: 0.25rem 0.65rem; font-size: 0.7rem;" title="Pinpoint on Map">
+                Pin
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <div style="text-align: center; color: var(--text-dim); padding: 3rem 1rem;">
+            No items currently recorded in this campus zone.
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= JAVASCRIPT & GOOGLE MAPS API LOADER ================= -->
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script>
+function switchMapMode(mode) {
+  const gmapWrapper = document.getElementById('google-campus-map-wrapper');
+  const blueprintWrapper = document.getElementById('blueprint-map-wrapper');
+  const btnGmap = document.getElementById('btn-mode-gmap');
+  const btnBlueprint = document.getElementById('btn-mode-blueprint');
+
+  if (mode === 'gmap') {
+    gmapWrapper.style.display = 'block';
+    blueprintWrapper.style.display = 'none';
+    btnGmap.classList.add('active');
+    btnBlueprint.classList.remove('active');
+  } else {
+    gmapWrapper.style.display = 'none';
+    blueprintWrapper.style.display = 'block';
+    btnBlueprint.classList.add('active');
+    btnGmap.classList.remove('active');
+  }
+}
+
+function selectZone(zoneName) {
+  window.location.href = "{{ url_for('campus_map') }}?zone=" + encodeURIComponent(zoneName);
+}
+</script>
+
+<!-- Google Maps JavaScript API (Loads asynchronously with custom Antigravity Dark Styles) -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initGoogleMap&loading=async" async defer></script>
+{% endblock %}

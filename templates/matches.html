@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}AI Smart Item Matching Radar | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto;">
+  <div style="margin-bottom: 2.5rem; text-align: center;">
+    <div class="ag-badge ag-badge-match" style="margin-bottom: 0.75rem;">
+      <span class="ag-pulse-dot" style="background-color: var(--cyan);"></span>
+      Intelligent Semantic Cross-Matcher
+    </div>
+    <h1 style="font-size: 2.2rem; color: #fff;">Smart Item Matching Radar</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 620px; margin: 0 auto;">
+      Cross-analyzing your active reports against university-wide lost and found filings using category classification, campus zone proximity, date intervals, and keyword matching.
+    </p>
+  </div>
+
+  {% if match_pairs %}
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+      {% for pair in match_pairs %}
+      <div class="ag-card ag-card-glow" style="padding: 2rem;">
+        <!-- Match Score Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="ag-match-score-pill">
+              {{ pair['score'] }}% Match Confidence
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              Scored via: {{ pair['reasons']|join(' • ') }}
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem;">
+            <a href="{{ url_for('item_detail', item_id=pair['matched_item']['id']) }}" class="ag-btn ag-btn-primary ag-btn-sm">
+              Inspect Matching Item &rarr;
+            </a>
+            <a href="{{ url_for('item_messages', item_id=pair['matched_item']['id']) }}" class="ag-btn ag-btn-glass ag-btn-sm">
+              Contact Reporter
+            </a>
+          </div>
+        </div>
+
+        <!-- Side-by-side comparison -->
+        <div class="ag-match-comparison">
+          <!-- Left: My Item -->
+          <div class="ag-card" style="background: rgba(10, 15, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <span class="ag-badge {% if pair['my_item']['type'] == 'LOST' %}ag-badge-lost{% else %}ag-badge-found{% endif %}">
+                Your {{ pair['my_item']['type'] }} Report
+              </span>
+              <span style="font-size: 0.75rem; color: var(--text-dim);">#{{ pair['my_item']['id'] }}</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: #fff; margin-bottom: 0.5rem;">{{ pair['my_item']['title'] }}</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+              {{ pair['my_item']['description'] }}
+            </p>
+            <div style="font-size: 0.8rem; color: var(--text-dim); display: flex; flex-direction: column; gap: 4px;">
+              <div>📍 <strong>Location:</strong> {{ pair['my_item']['location'] }}</div>
+              <div>📅 <strong>Date:</strong> {{ pair['my_item']['item_date'] }}</div>
+              <div>🏷️ <strong>Category:</strong> {{ pair['my_item']['category'] }}</div>
+            </div>
+          </div>
+
+          <!-- Middle VS Icon -->
+          <div class="ag-match-vs">VS</div>
+
+          <!-- Right: Matched Item -->
+          <div class="ag-card" style="background: rgba(10, 15, 26, 0.7); border: 1px solid var(--border-cyan);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <span class="ag-badge {% if pair['matched_item']['type'] == 'LOST' %}ag-badge-lost{% else %}ag-badge-found{% endif %}">
+                Campus {{ pair['matched_item']['type'] }} Candidate
+              </span>
+              <span style="font-size: 0.75rem; color: var(--text-dim);">#{{ pair['matched_item']['id'] }}</span>
+            </div>
+            <h4 style="font-size: 1.15rem; color: #fff; margin-bottom: 0.5rem;">{{ pair['matched_item']['title'] }}</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+              {{ pair['matched_item']['description'] }}
+            </p>
+            <div style="font-size: 0.8rem; color: var(--text-dim); display: flex; flex-direction: column; gap: 4px;">
+              <div>📍 <strong>Location:</strong> {{ pair['matched_item']['location'] }}</div>
+              <div>📅 <strong>Date:</strong> {{ pair['matched_item']['item_date'] }}</div>
+              <div>🏷️ <strong>Category:</strong> {{ pair['matched_item']['category'] }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="ag-card" style="text-align: center; padding: 4rem 2rem;">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(0, 242, 254, 0.08); border: 1px solid var(--border-cyan); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; color: var(--cyan);">
+        <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+      </div>
+      <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #fff;">No Strong Matches Currently</h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 480px; margin: 0 auto 1.5rem;">
+        {% if my_items_count == 0 %}
+          You have not reported any active items yet. Report a lost or found item, and the smart matcher will continuously monitor incoming listings.
+        {% else %}
+          The system continues scanning for new reports matching your {{ my_items_count }} active filing{{ 's' if my_items_count > 1 else '' }}. You will receive instant notifications whenever a high-confidence match is filed!
+        {% endif %}
+      </p>
+      <div style="display: flex; gap: 1rem; justify-content: center;">
+        <a href="{{ url_for('report_item') }}" class="ag-btn ag-btn-primary">Report an Item</a>
+        <a href="{{ url_for('browse') }}" class="ag-btn ag-btn-glass">Browse All Items</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

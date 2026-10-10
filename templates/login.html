@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 2.5rem auto;">
+  <div class="ag-card ag-card-glow" style="padding: 2.5rem;">
+    <!-- Brand Icon -->
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <div class="ag-logo-orb" style="margin: 0 auto 1rem; width: 48px; height: 48px;">
+        <svg viewBox="0 0 24 24" width="26" height="26">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3a9 9 0 0 1 9 9M12 7a5 5 0 0 1 5 5"/>
+        </svg>
+      </div>
+      <h2 style="font-size: 1.8rem; color: #fff;">Campus Sign In</h2>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 4px;">
+        Access your verified university Lost & Found dashboard
+      </p>
+    </div>
+
+    <!-- Login Form -->
+    <form method="POST" action="{{ url_for('login', next=request.args.get('next')) }}">
+      <div class="ag-form-group">
+        <label class="ag-form-label">Campus Email or Student ID (USN) *</label>
+        <input type="text" name="login_id" class="ag-input" required placeholder="e.g. alex.chen@campus.edu or 1MS21CS042">
+      </div>
+
+      <div class="ag-form-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <label class="ag-form-label" style="margin-bottom: 0;">Password *</label>
+          <span style="font-size: 0.75rem; color: var(--cyan); cursor: pointer;" onclick="alert('For demo accounts, use password: Student@123 or Admin@123');">Forgot password?</span>
+        </div>
+        <input type="password" name="password" class="ag-input" required placeholder="Enter your password">
+      </div>
+
+      <button type="submit" class="ag-btn ag-btn-primary" style="width: 100%; padding: 0.8rem; margin-top: 1rem; font-size: 1rem;">
+        Sign In to Portal &rarr;
+      </button>
+    </form>
+
+    <!-- 1-Click Demo Evaluation Credentials -->
+    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-glass);">
+      <div style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; text-align: center;">
+        ⚡ Instant Demo Access (Evaluation)
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+        <a href="{{ url_for('quick_login', role_or_name='admin') }}" class="ag-btn ag-btn-glass ag-btn-sm" style="font-size: 0.75rem; color: var(--amber);">
+          👑 Security Admin
+        </a>
+        <a href="{{ url_for('quick_login', role_or_name='alex') }}" class="ag-btn ag-btn-glass ag-btn-sm" style="font-size: 0.75rem; color: var(--cyan);">
+          🎓 Alex Chen (CS)
+        </a>
+        <a href="{{ url_for('quick_login', role_or_name='priya') }}" class="ag-btn ag-btn-glass ag-btn-sm" style="font-size: 0.75rem; color: #a855f7;">
+          🎓 Priya (ECE)
+        </a>
+        <a href="{{ url_for('quick_login', role_or_name='marcus') }}" class="ag-btn ag-btn-glass ag-btn-sm" style="font-size: 0.75rem; color: var(--emerald);">
+          🎓 Marcus (ME)
+        </a>
+      </div>
+    </div>
+
+    <!-- Register Link -->
+    <div style="text-align: center; margin-top: 1.75rem; font-size: 0.85rem; color: var(--text-muted);">
+      Don't have a verified campus account?
+      <a href="{{ url_for('register') }}" style="font-weight: 600; color: var(--cyan);">Register Now</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

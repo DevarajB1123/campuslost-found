@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Claims & Handover Hub | Campus Lost & Found{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto;">
+  <div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; color: #fff;">Claims & Return Verification Center</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Review ownership verification answers, authorize safe handovers, and coordinate returns.
+    </p>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-glass); margin-bottom: 2rem;">
+    <button class="ag-chip active" id="tab-btn-incoming" onclick="switchClaimsTab('incoming')">
+      Incoming Claims Received ({{ incoming_claims|length }})
+    </button>
+    <button class="ag-chip" id="tab-btn-my" onclick="switchClaimsTab('my')">
+      Claims I Filed ({{ my_claims|length }})
+    </button>
+  </div>
+
+  <!-- ================= TAB 1: INCOMING CLAIMS ================= -->
+  <div id="tab-incoming">
+    {% if incoming_claims %}
+      <div style="display: flex; flex-direction: column; gap: 1.75rem;">
+        {% for claim in incoming_claims %}
+        <div class="ag-card" style="border-left: 4px solid {% if claim['status'] == 'APPROVED' %}var(--cyan){% elif claim['status'] == 'RETURNED' %}var(--emerald){% elif claim['status'] == 'REJECTED' %}var(--crimson){% else %}var(--amber){% endif %};">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span class="ag-badge {% if claim['status'] == 'APPROVED' %}ag-badge-returned{% elif claim['status'] == 'RETURNED' %}ag-badge-found{% elif claim['status'] == 'REJECTED' %}ag-badge-lost{% else %}ag-badge-pending{% endif %}">
+                  {{ claim['status'] }}
+                </span>
+                <span style="font-size: 0.8rem; color: var(--text-dim);">Claim #{{ claim['id'] }} • Submitted on {{ claim['created_at'][:16] }}</span>
+              </div>
+              <h3 style="font-size: 1.3rem; color: #fff;">
+                Claim for: <a href="{{ url_for('item_detail', item_id=claim['item_id']) }}">{{ claim['item_title'] }}</a>
+              </h3>
+            </div>
+
+            <!-- Claimant Info -->
+            <div style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255, 255, 255, 0.03); padding: 0.5rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
+              <div class="ag-avatar-sm">{{ claim['claimant_name'][0] }}</div>
+              <div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: #fff;">{{ claim['claimant_name'] }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ claim['claimant_usn'] }} ({{ claim['claimant_dept'] }})</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Proof & Verification Comparison Grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; background: rgba(14, 20, 36, 0.7); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass-light);">
+            <!-- Left: Claimant's Submitted Proof -->
+            <div>
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--cyan); margin-bottom: 0.4rem; text-transform: uppercase;">
+                Claimant's Verification Answers:
+              </div>
+              <p style="font-size: 0.9rem; color: #f1f5f9; line-height: 1.6; margin-bottom: 0.5rem;">
+                <strong>Proof Statement:</strong> {{ claim['proof_description'] }}
+              </p>
+              {% if claim['identifying_answers'] %}
+              <div style="font-size: 0.85rem; color: #94a3b8; background: rgba(0, 0, 0, 0.25); padding: 0.5rem; border-radius: 6px;">
+                <strong>Specific Identifying Marks:</strong> {{ claim['identifying_answers'] }}
+              </div>
+              {% endif %}
+              {% if claim['contact_note'] %}
+              <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 6px;">
+                <em>Handover note: {{ claim['contact_note'] }}</em>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Right: Reporter's Private Verification Detail -->
+            <div style="border-left: 1px solid var(--border-glass-light); padding-left: 1.25rem;">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--purple); margin-bottom: 0.4rem; text-transform: uppercase;">
+                Your Confidential Record:
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                {{ claim['private_details'] or 'No private details were specified.' }}
+              </p>
+              <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 8px;">
+                Compare both descriptions to ensure the claimant is the rightful owner before handing over.
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions Toolbar -->
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-glass);">
+            <div style="display: flex; gap: 0.75rem;">
+              <a href="{{ url_for('item_messages', item_id=claim['item_id'], with=claim['claimant_id']) }}" class="ag-btn ag-btn-glass ag-btn-sm">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Chat with Claimant
+              </a>
+            </div>
+
+            <!-- Claim Status Transition Actions -->
+            <form method="POST" action="{{ url_for('claim_action', claim_id=claim['id']) }}" style="display: flex; gap: 0.5rem; align-items: center;">
+              {% if claim['status'] == 'PENDING' %}
+                <button type="submit" name="action" value="APPROVED" class="ag-btn ag-btn-primary ag-btn-sm">
+                  Approve Claim
+                </button>
+                <button type="submit" name="action" value="REJECTED" class="ag-btn ag-btn-danger ag-btn-sm" onclick="return confirm('Reject this claim?');">
+                  Reject Claim
+                </button>
+              {% elif claim['status'] == 'APPROVED' %}
+                <button type="submit" name="action" value="RETURNED" class="ag-btn ag-btn-success ag-btn-sm" onclick="return confirm('Confirm that this item was physically returned to the owner?');">
+                  ✓ Confirm Item Handed Over & Returned
+                </button>
+                <button type="submit" name="action" value="REJECTED" class="ag-btn ag-btn-danger ag-btn-sm">
+                  Revoke Approval
+                </button>
+              {% elif claim['status'] == 'RETURNED' %}
+                <span style="color: var(--emerald); font-size: 0.85rem; font-weight: 700;">
+                  🎉 Item successfully returned to owner.
+                </span>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="ag-card" style="text-align: center; padding: 3rem 1.5rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📭</div>
+        <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 0.25rem;">No Incoming Claims</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">
+          When someone claims an item you found and reported, their proof answers will appear here for verification.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ================= TAB 2: MY FILED CLAIMS ================= -->
+  <div id="tab-my" style="display: none;">
+    {% if my_claims %}
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for claim in my_claims %}
+        <div class="ag-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <span class="ag-badge {% if claim['status'] == 'APPROVED' %}ag-badge-returned{% elif claim['status'] == 'RETURNED' %}ag-badge-found{% elif claim['status'] == 'REJECTED' %}ag-badge-lost{% else %}ag-badge-pending{% endif %}">
+                {{ claim['status'] }}
+              </span>
+              <h3 style="font-size: 1.25rem; color: #fff; margin-top: 6px;">
+                <a href="{{ url_for('item_detail', item_id=claim['item_id']) }}">{{ claim['item_title'] }}</a>
+              </h3>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <a href="{{ url_for('item_messages', item_id=claim['item_id']) }}" class="ag-btn ag-btn-primary ag-btn-sm">
+                Open Handover Chat
+              </a>
+              <a href="{{ url_for('item_detail', item_id=claim['item_id']) }}" class="ag-btn ag-btn-glass ag-btn-sm">
+                View Listing
+              </a>
+            </div>
+          </div>
+
+          <div style="background: rgba(255, 255, 255, 0.02); padding: 1rem; border-radius: var(--radius-md); font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
+            <strong>Your Proof Submitted:</strong> {{ claim['proof_description'] }}
+          </div>
+
+          {% if claim['status'] == 'RETURNED' %}
+          <!-- Recovery Rating Box -->
+          <div style="background: rgba(0, 245, 160, 0.08); border: 1px solid rgba(0, 245, 160, 0.3); border-radius: var(--radius-md); padding: 1rem;">
+            <h4 style="color: var(--emerald); font-size: 0.95rem; margin-bottom: 0.4rem;">Rate Your Recovery Experience</h4>
+            <form method="POST" action="{{ url_for('api_submit_feedback', claim_id=claim['id']) }}" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+              <select name="rating" class="ag-select" style="width: auto;">
+                <option value="5">⭐⭐⭐⭐⭐ Excellent (5/5)</option>
+                <option value="4">⭐⭐⭐⭐ Great (4/5)</option>
+                <option value="3">⭐⭐⭐ Good (3/5)</option>
+                <option value="2">⭐⭐ Fair (2/5)</option>
+                <option value="1">⭐ Poor (1/5)</option>
+              </select>
+              <input type="text" name="comment" class="ag-input" placeholder="Feedback or thank you note to finder/security..." style="flex-grow: 1;">
+              <button type="submit" class="ag-btn ag-btn-success ag-btn-sm">Submit Review</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="ag-card" style="text-align: center; padding: 3rem 1.5rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📋</div>
+        <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 0.25rem;">No Claims Submitted Yet</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+          When you see an item that belongs to you in the browse directory, click "Claim This Item" to submit ownership proof.
+        </p>
+        <a href="{{ url_for('browse') }}" class="ag-btn ag-btn-primary">Browse Directory</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function switchClaimsTab(tab) {
+  const incTab = document.getElementById('tab-incoming');
+  const myTab = document.getElementById('tab-my');
+  const incBtn = document.getElementById('tab-btn-incoming');
+  const myBtn = document.getElementById('tab-btn-my');
+
+  if (tab === 'incoming') {
+    incTab.style.display = 'block';
+    myTab.style.display = 'none';
+    incBtn.classList.add('active');
+    myBtn.classList.remove('active');
+  } else {
+    incTab.style.display = 'none';
+    myTab.style.display = 'block';
+    myBtn.classList.add('active');
+    incBtn.classList.remove('active');
+  }
+}
+</script>
+{% endblock %}

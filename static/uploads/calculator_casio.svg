@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+            <defs>
+                <linearGradient id="gc" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#1e293b"/>
+                    <stop offset="100%" stop-color="#090d16"/>
+                </linearGradient>
+            </defs>
+            <rect width="400" height="400" fill="#111827"/>
+            <!-- Calc Body -->
+            <rect x="130" y="80" width="140" height="240" rx="18" fill="url(#gc)" stroke="#38bdf8" stroke-width="2"/>
+            <!-- Display -->
+            <rect x="145" y="105" width="110" height="45" rx="6" fill="#042f2e" stroke="#14b8a6" stroke-width="1.5"/>
+            <text x="245" y="138" fill="#2dd4bf" font-family="monospace" font-size="20" text-anchor="end">fx-991EX</text>
+            <!-- Solar cell -->
+            <rect x="210" y="90" width="45" height="10" rx="2" fill="#78350f"/>
+            <!-- Keypad grid -->
+            <g fill="#334155" rx="3">
+                <rect x="145" y="165" width="22" height="16" rx="3"/>
+                <rect x="175" y="165" width="22" height="16" rx="3"/>
+                <rect x="205" y="165" width="22" height="16" rx="3"/>
+                <rect x="233" y="165" width="22" height="16" rx="3"/>
+
+                <rect x="145" y="195" width="22" height="16" rx="3"/>
+                <rect x="175" y="195" width="22" height="16" rx="3"/>
+                <rect x="205" y="195" width="22" height="16" rx="3"/>
+                <rect x="233" y="195" width="22" height="16" rx="3"/>
+
+                <rect x="145" y="225" width="22" height="16" rx="3"/>
+                <rect x="175" y="225" width="22" height="16" rx="3"/>
+                <rect x="205" y="225" width="22" height="16" rx="3"/>
+                <rect x="233" y="225" width="22" height="16" rx="3"/>
+
+                <rect x="145" y="255" width="22" height="16" rx="3" fill="#0284c7"/>
+                <rect x="175" y="255" width="22" height="16" rx="3"/>
+                <rect x="205" y="255" width="22" height="16" rx="3"/>
+                <rect x="233" y="255" width="22" height="16" rx="3" fill="#ef4444"/>
+
+                <rect x="145" y="285" width="52" height="18" rx="3"/>
+                <rect x="205" y="285" width="50" height="18" rx="3" fill="#10b981"/>
+            </g>
+            <text x="200" y="355" fill="#94a3b8" font-family="sans-serif" font-size="14" text-anchor="middle">Casio Scientific Calculator</text>
+        </svg>
